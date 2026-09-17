@@ -47,6 +47,19 @@ Finally, we can run the tests with:
 python -m mc.test
 ```
 
+You should see output similiar to the following:
+
+```text
+[ RUN ] PendingTx.Serialization.9e3a31032ee2cf3cb65c908e107a9952d03bbc4f
+[ SUCCESS ] PendingTx.Serialization.9e3a31032ee2cf3cb65c908e107a9952d03bbc4f
+[ RUN ] PendingTx.Serialization.9e3a31032ee2cf3cb65c908e107a9952d03bbc4f.bak
+[ SUCCESS ] PendingTx.Serialization.9e3a31032ee2cf3cb65c908e107a9952d03bbc4f.bak
+================
+Version control testing results against 66b17d42abf309ea914557bf15bb69133e592251
+================
+Ran 2 tests, 2 succeeded
+```
+
 ### Debugging
 
 The `config.json` file has a `build_type` field. It defaults to `Release`, but
