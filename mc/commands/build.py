@@ -6,6 +6,12 @@ import subprocess
 from ..infra import defaults
 from ..infra.user_config import UserConfig
 
+def submodule_nofetch_is_supported() -> bool:
+    # See: https://github.com/gitpython-developers/GitPython/pull/2244
+    gitv = tuple(map(int, git.__version__.split('.')))
+    assert len(gitv) == 3
+    return gitv > (3, 1, 62) or 'no_fetch' in git.Submodule.update.__doc__
+
 def try_decode(line):
     try:
         return line.decode()
@@ -63,18 +69,22 @@ def build(build_dir, config: UserConfig, this_commit: str, num_jobs: int = 1, fo
         # TODO: apply patches
         # TODO: make cmake project which depends on repo
         print("Updating submodules...")
-        repo.submodule_update(recursive=True)
+        if submodule_nofetch_is_supported():
+            repo.submodule_update(recursive=True, no_fetch=True)
+        else:
+            repo.submodule_update(recursive=True)
         print("Configuring...")
         cmd_streamed_out(['cmake', '-B', binary_dir, f'-DCMAKE_BUILD_TYPE={config.build_type}',
             f'-DMONERO_ROOT_DIR={repo_dir}', '.'])
         print("Compiling...")
         cmd_streamed_out(['make', f'-j{num_jobs}', '-C', binary_dir] + defaults.MAKE_TARGETS)
         if this_commit:
-            with open(skip_file) as outf:
+            with open(skip_file, 'w') as outf:
                 outf.write(this_commit)
         built.add(str(commit))
 
 def get_testing_repo_head_commit():
+    # TODO: return None when has unstaged changes
     try:
         this_repo = git.Repo(os.path.join(__file__, '..', '..', '..'))
         head = git.refs.head.HEAD(this_repo)

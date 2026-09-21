@@ -16,6 +16,7 @@ def update(build_dir, config: UserConfig):
         clone_options = [f'--origin={remote[0]}'] 
         repo = git.Repo.clone_from(remote[1], repo_dir)
 
+    print('Fetching recursively from:')
     for remote_config in config.remotes:
         try:
             remote = repo.remote(remote_config[0])
@@ -24,8 +25,8 @@ def update(build_dir, config: UserConfig):
             print(f'Creating new remote {remote_config[0]} with URL {remote_config[1]}...')
             remote = git.remote.Remote.create(repo, remote_config[0], remote_config[1])
 
-        print(f'Fetching recursively from {remote_config[1]}...')
-        remote.fetch(recurse_submodules='yes')
+        print('  -', remote_config[1])
+        remote.fetch(**{'recurse_submodules': 'yes'})
 
 def update_main():
     build_dir = defaults.BUILD_DIR
