@@ -71,7 +71,7 @@ def build(build_dir, config: UserConfig, this_commit: str, num_jobs: int = 1, fo
             repo.submodule_update(recursive=True, force_remove=True)
         print("Configuring...")
         cmd_streamed_out(['cmake', '-B', binary_dir, f'-DCMAKE_BUILD_TYPE={config.build_type}',
-            f'-DMONERO_ROOT_DIR={repo_dir}', '-G', 'Unix Makefiles', '.'])
+            f'-DMONERO_ROOT_DIR={repo_dir}', '-G', 'Unix Makefiles', '-DMANUAL_SUBMODULES=1', '.'])
         print("Compiling...")
         cmd_streamed_out(['make', f'-j{num_jobs}', '-C', binary_dir] + defaults.MAKE_TARGETS)
         if this_commit:

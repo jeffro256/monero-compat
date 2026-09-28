@@ -6,6 +6,9 @@
 #include "specialize_equal_to.h"
 #include "wallet/wallet2.h"
 
+#ifdef HAVE_TX_BUILDER
+#include "wallet/tx_builder_serialization.h"
+#endif
 
 using tx_construction_data = tools::wallet2::tx_construction_data;
 using multisig_sig = tools::wallet2::multisig_sig;
@@ -83,7 +86,7 @@ tools::wallet2::pending_tx get_control_ptx()
     ptx.multisig_sigs.resize(n_inputs);
     ptx.multisig_tx_key_entropy = rct::rct2sk(random_k);
 
-    auto &ctx = ptx.construction_data;
+    tx_construction_data ctx{};
     ctx.sources.resize(n_inputs, cryptonote::tx_source_entry{.outputs = {{}}});
     ctx.change_dts = ptx.change_dts;
     ctx.splitted_dsts = ptx.dests;
@@ -99,6 +102,7 @@ tools::wallet2::pending_tx get_control_ptx()
     ctx.dests = ptx.dests;
     ctx.subaddr_account = 5;
     ctx.subaddr_indices = {2, 0, 3};
+    ptx.construction_data = ctx;
     return ptx;
 }
 } //anonymous namespace
@@ -179,6 +183,13 @@ SPECIALIZE_EQ(tx_construction_data)
         && a.subaddr_account    == b.subaddr_account
         && a.subaddr_indices    == b.subaddr_indices;
 }
+
+#ifdef HAVE_TX_BUILDER
+SPECIALIZE_EQ(carrot::CarrotTransactionProposalV1)
+{
+    return false;
+}
+#endif
 
 SPECIALIZE_EQ(pending_tx)
 {
