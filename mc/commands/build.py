@@ -66,9 +66,9 @@ def build(build_dir, config: UserConfig, this_commit: str, num_jobs: int = 1, fo
         # TODO: make cmake project which depends on repo
         print("Updating submodules...")
         try:
-            repo.submodule_update(recursive=True, no_fetch=True)
+            repo.submodule_update(recursive=True, force_remove=True, no_fetch=True)
         except:
-            repo.submodule_update(recursive=True)
+            repo.submodule_update(recursive=True, force_remove=True)
         print("Configuring...")
         cmd_streamed_out(['cmake', '-B', binary_dir, f'-DCMAKE_BUILD_TYPE={config.build_type}',
             f'-DMONERO_ROOT_DIR={repo_dir}', '-G', 'Unix Makefiles', '.'])

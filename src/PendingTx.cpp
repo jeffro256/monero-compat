@@ -3,7 +3,9 @@
 #include "file_io_utils.h"
 #include "serialization/binary_utils.h"
 #include "serialization/serialization.h"
+#include "specialize_equal_to.h"
 #include "wallet/wallet2.h"
+
 
 using tx_construction_data = tools::wallet2::tx_construction_data;
 using multisig_sig = tools::wallet2::multisig_sig;
@@ -101,56 +103,26 @@ tools::wallet2::pending_tx get_control_ptx()
 }
 } //anonymous namespace
 
-namespace rct
-{
-bool operator==(const RCTConfig &a, const RCTConfig &b)
+SPECIALIZE_EQ(rct::RCTConfig)
 {
     return a.range_proof_type == b.range_proof_type
         && a.bp_version       == b.bp_version;
 }
 
-bool operator==(const multisig_kLRki &a, const multisig_kLRki &b)
+SPECIALIZE_EQ(rct::multisig_kLRki)
 {
     return a.k  == b.k
         && a.L  == b.L
         && a.R  == b.R
         && a.ki == b.ki;
 }
-} //namespace rct
 
-namespace cryptonote
+SPECIALIZE_EQ(rct::ctkey)
 {
-bool operator==(const tx_source_entry &a, const tx_source_entry &b)
-{
-    return a.outputs                     == b.outputs
-        && a.real_output                 == b.real_output
-        && a.real_out_tx_key             == b.real_out_tx_key
-        && a.real_out_additional_tx_keys == b.real_out_additional_tx_keys
-        && a.real_output_in_tx_index     == b.real_output_in_tx_index
-        && a.amount                      == b.amount
-        && a.rct                         == b.rct
-        && a.mask                        == b.mask
-        && a.multisig_kLRki              == b.multisig_kLRki;
-}
-} //namespace cryptonote
-
-bool operator==(const tx_construction_data &a, const tx_construction_data &b)
-{
-    return a.sources            == b.sources
-        && a.change_dts         == b.change_dts
-        && a.splitted_dsts      == b.splitted_dsts
-        && a.selected_transfers == b.selected_transfers
-        && a.extra              == b.extra
-        && a.unlock_time        == b.unlock_time
-        && a.use_rct            == b.use_rct
-        && a.rct_config         == b.rct_config
-        && a.use_view_tags      == b.use_view_tags
-        && a.dests              == b.dests
-        && a.subaddr_account    == b.subaddr_account
-        && a.subaddr_indices    == b.subaddr_indices;
+    return a.dest == b.dest && a.mask == b.mask;
 }
 
-bool eq(const multisig_sig &a, const multisig_sig &b)
+SPECIALIZE_EQ(multisig_sig)
 {
     std::string a_sigs_blob;
     if (!::serialization::dump_binary(const_cast<rct::rctSig&>(a.sigs), a_sigs_blob))
@@ -170,18 +142,45 @@ bool eq(const multisig_sig &a, const multisig_sig &b)
         && a.s             == b.s;
 }
 
-template <typename value_type>
-bool eq(const std::vector<value_type> &a, const std::vector<value_type> &b)
+SPECIALIZE_EQ(cryptonote::tx_source_entry)
 {
-    if (a.size() != b.size())
-        return false;
-    for (size_t i = 0; i < a.size(); ++i)
-        if (!eq(a[i], b[i]))
-            return false;
-    return true;
+    return eq(a.outputs,                    b.outputs)
+        && a.real_output                 == b.real_output
+        && a.real_out_tx_key             == b.real_out_tx_key
+        && a.real_out_additional_tx_keys == b.real_out_additional_tx_keys
+        && a.real_output_in_tx_index     == b.real_output_in_tx_index
+        && a.amount                      == b.amount
+        && a.rct                         == b.rct
+        && a.mask                        == b.mask
+        && eq(a.multisig_kLRki,             b.multisig_kLRki);
 }
 
-bool operator==(const pending_tx &a, const pending_tx &b)
+SPECIALIZE_EQ(cryptonote::tx_destination_entry)
+{
+    return a.original      == b.original
+        && a.amount        == b.amount
+        && a.addr          == b.addr
+        && a.is_subaddress == b.is_subaddress
+        && a.is_integrated == b.is_integrated;
+}
+
+SPECIALIZE_EQ(tx_construction_data)
+{
+    return eq(a.sources,           b.sources)
+        && eq(a.change_dts,        b.change_dts)
+        && eq(a.splitted_dsts,     b.splitted_dsts)
+        && a.selected_transfers == b.selected_transfers
+        && a.extra              == b.extra
+        && a.unlock_time        == b.unlock_time
+        && a.use_rct            == b.use_rct
+        && eq(a.rct_config,    b.rct_config)
+        && a.use_view_tags      == b.use_view_tags
+        && eq(a.dests,             b.dests)
+        && a.subaddr_account    == b.subaddr_account
+        && a.subaddr_indices    == b.subaddr_indices;
+}
+
+SPECIALIZE_EQ(pending_tx)
 {
     try
     {
@@ -192,15 +191,15 @@ bool operator==(const pending_tx &a, const pending_tx &b)
             && a.dust                    == b.dust
             && a.fee                     == b.fee
             && a.dust_added_to_fee       == b.dust_added_to_fee
-            && a.change_dts              == b.change_dts
+            && eq(a.change_dts,             b.change_dts)
             && a.selected_transfers      == b.selected_transfers
             && a.key_images              == b.key_images
             && a.tx_key                  == b.tx_key
             && a.additional_tx_keys      == b.additional_tx_keys
-            && a.dests                   == b.dests
-            && eq(a.multisig_sigs,          b.multisig_sigs) // C++ operator lookup rules are so cool...
+            && eq(a.dests,                  b.dests)
+            && eq(a.multisig_sigs,          b.multisig_sigs)
             && a.multisig_tx_key_entropy == b.multisig_tx_key_entropy
-            && a.construction_data       == b.construction_data;
+            && eq(a.construction_data,  b.construction_data);
     }
     catch (...)
     {
@@ -237,7 +236,7 @@ MC_API_EXPORT int mc_PendingTx_read_and_compare(const char *fname)
         tools::wallet2::pending_tx ptx;
         if (!serialization::parse_binary(ptx_blob, ptx))
             return 1;
-        return ptx == get_control_ptx() ? 0 : 1;
+        return eq(ptx, get_control_ptx()) ? 0 : 1;
     }
     catch (...)
     {
