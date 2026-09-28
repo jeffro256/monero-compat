@@ -2,6 +2,7 @@
 
 #include "file_io_utils.h"
 #include "serialization/binary_utils.h"
+#include "serialization/serialization.h"
 #include "wallet/wallet2.h"
 
 using tx_construction_data = tools::wallet2::tx_construction_data;

@@ -2,6 +2,8 @@ import git
 import multiprocessing
 import os
 import subprocess
+import sys
+import tempfile
 
 from ..infra import defaults
 from ..infra import git_utils
@@ -15,8 +17,9 @@ def try_decode(line):
 
 # Run a command, showing 1 line of stdout at time, and dump stderr on fail
 def cmd_streamed_out(args):
+    stderr_dest_file = tempfile.TemporaryFile()
     max_stdout_len = 120
-    proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=stderr_dest_file, close_fds=True)
     while True:
         line = proc.stdout.readline()
         if not line:
@@ -26,11 +29,12 @@ def cmd_streamed_out(args):
         print('\r  ', line, sep='', end='')
     print()
     if proc.wait() != 0:
+        stderr_dest_file.seek(0)
         while True:
-            line = proc.stderr.readline()
+            line = stderr_dest_file.readline()
             if not line:
                 break
-            print(try_decode(line))
+            print(try_decode(line), file=sys.stderr)
         raise RuntimeError("Subprocess returned a non-zero exit code")
 
 def build(build_dir, config: UserConfig, this_commit: str, num_jobs: int = 1, force: bool = False):
@@ -67,7 +71,7 @@ def build(build_dir, config: UserConfig, this_commit: str, num_jobs: int = 1, fo
             repo.submodule_update(recursive=True)
         print("Configuring...")
         cmd_streamed_out(['cmake', '-B', binary_dir, f'-DCMAKE_BUILD_TYPE={config.build_type}',
-            f'-DMONERO_ROOT_DIR={repo_dir}', '.'])
+            f'-DMONERO_ROOT_DIR={repo_dir}', '-G', 'Unix Makefiles', '.'])
         print("Compiling...")
         cmd_streamed_out(['make', f'-j{num_jobs}', '-C', binary_dir] + defaults.MAKE_TARGETS)
         if this_commit:
