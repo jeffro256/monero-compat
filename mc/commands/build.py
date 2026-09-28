@@ -4,13 +4,8 @@ import os
 import subprocess
 
 from ..infra import defaults
+from ..infra import git_utils
 from ..infra.user_config import UserConfig
-
-def submodule_nofetch_is_supported() -> bool:
-    # See: https://github.com/gitpython-developers/GitPython/pull/2244
-    gitv = tuple(map(int, git.__version__.split('.')))
-    assert len(gitv) == 3
-    return gitv > (3, 1, 62) or 'no_fetch' in git.Submodule.update.__doc__
 
 def try_decode(line):
     try:
@@ -47,12 +42,10 @@ def build(build_dir, config: UserConfig, this_commit: str, num_jobs: int = 1, fo
     commit_revs = config.control_commits + [config.target_commit]
     built = set()
     for commit_rev in commit_revs:
-        commit = repo.rev_parse(commit_rev)
-        if not isinstance(commit, git.objects.commit.Commit):
-            raise TypeError(f'Expected commit for revision: {commit_rev}')
+        commit = git_utils.parse_commit(repo, commit_rev)
         if str(commit) in built:
             continue
-        print(f'Checking out {str(commit)}...')
+        print(f'Checking out {str(commit)} {'(' + commit_rev + ')' if str(commit) != commit_rev else None}...')
         index_file = git.index.base.IndexFile.new(repo, commit.tree)
         index_file.checkout()
         binary_dir = os.path.join(binary_top_dir, str(commit))
@@ -69,9 +62,9 @@ def build(build_dir, config: UserConfig, this_commit: str, num_jobs: int = 1, fo
         # TODO: apply patches
         # TODO: make cmake project which depends on repo
         print("Updating submodules...")
-        if submodule_nofetch_is_supported():
+        try:
             repo.submodule_update(recursive=True, no_fetch=True)
-        else:
+        except:
             repo.submodule_update(recursive=True)
         print("Configuring...")
         cmd_streamed_out(['cmake', '-B', binary_dir, f'-DCMAKE_BUILD_TYPE={config.build_type}',

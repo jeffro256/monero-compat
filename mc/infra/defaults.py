@@ -7,7 +7,10 @@ REMOTES = [
 TARGET_COMMIT = REMOTES[0][0] + '/master'
 
 CONTROL_COMMITS = [
-    "9e3a31032ee2cf3cb65c908e107a9952d03bbc4f"
+    "monero-project/release-v0.18", # branch
+    "monero-project/release-v0.19", # branch
+    "monero-project/master",        # branch
+    "v0.18.0.0",                    # tag
 ]
 
 JSON_INDENT = 4

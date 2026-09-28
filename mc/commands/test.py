@@ -11,18 +11,10 @@ import subprocess
 import traceback
 
 from ..infra import defaults
+from ..infra import git_utils
 from ..infra.user_config import UserConfig
 from ..infra.test_case import BinaryInfo, TestCase
 from ..infra.test_suite import TestSuiteConfig
-
-def git_rev_parse(build_dir: str, rev: str):
-    repo_dir = os.path.join(build_dir, defaults.REPO_SUBDIR)
-    repo = git.Repo(repo_dir)
-    commit = repo.rev_parse(rev)
-    if not isinstance(commit, git.objects.commit.Commit):
-        raise TypeError(f'Expected commit for revision: {rev}')
-    bytes.fromhex(commit.hexsha)
-    return commit.hexsha
 
 # Creates a context manager which, on enter, starts processes specified in the
 # test suite config with CWD as `running_dir`. On context managager close, sends
@@ -130,7 +122,10 @@ def run_suite(results: dict, cdlls: dict, build_dir: str, test_suite_name: str, 
 def test(build_dir: str, config: UserConfig):
     assert os.path.exists(build_dir)
     assert config.control_commits
-    target_commit = git_rev_parse(build_dir, config.target_commit)
+
+    repo_dir = os.path.join(build_dir, defaults.REPO_SUBDIR)
+    repo = git.Repo(repo_dir)
+    target_commit = str(git_utils.parse_commit(repo, config.target_commit))
     cases_dir = os.path.realpath(os.path.join(__file__, '..', '..', 'cases'))
 
     # For each suite...
@@ -150,7 +145,7 @@ def test(build_dir: str, config: UserConfig):
         # For each control commit...
         for control_commit in config.control_commits:
             # Run suite
-            control_commit = git_rev_parse(build_dir, control_commit)
+            control_commit = str(git_utils.parse_commit(repo, control_commit))
             run_suite(results, cdlls, build_dir, test_suite_name, '*', control_commit, target_commit)
 
     # Print results
