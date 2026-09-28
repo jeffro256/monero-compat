@@ -10,7 +10,7 @@ CONTROL_COMMITS = [
     "monero-project/release-v0.18", # branch
     "monero-project/release-v0.19", # branch
     "monero-project/master",        # branch
-    "v0.18.0.0",                    # tag
+    "jeffro256/mc-v0.18.0.0",       # branch
 ]
 
 JSON_INDENT = 4

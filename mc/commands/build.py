@@ -42,13 +42,12 @@ def build(build_dir, config: UserConfig, this_commit: str, num_jobs: int = 1, fo
     commit_revs = config.control_commits + [config.target_commit]
     built = set()
     for commit_rev in commit_revs:
-        commit = git_utils.parse_commit(repo, commit_rev)
-        if str(commit) in built:
+        commit = str(git_utils.parse_commit(repo, commit_rev))
+        if commit in built:
             continue
-        print(f'Checking out {str(commit)} {'(' + commit_rev + ')' if str(commit) != commit_rev else None}...')
-        index_file = git.index.base.IndexFile.new(repo, commit.tree)
-        index_file.checkout()
-        binary_dir = os.path.join(binary_top_dir, str(commit))
+        print(f'Checking out {commit} {'(' + commit_rev + ')' if commit != commit_rev else None}...')
+        repo.git.checkout(commit)
+        binary_dir = os.path.join(binary_top_dir, commit)
         os.makedirs(binary_dir, exist_ok=True)
         skip_file = os.path.join(binary_dir, defaults.BUILD_SKIP_FILE)
         if os.path.exists(skip_file):
@@ -74,7 +73,7 @@ def build(build_dir, config: UserConfig, this_commit: str, num_jobs: int = 1, fo
         if this_commit:
             with open(skip_file, 'w') as outf:
                 outf.write(this_commit)
-        built.add(str(commit))
+        built.add(commit)
 
 def get_testing_repo_head_commit():
     # TODO: return None when has unstaged changes
